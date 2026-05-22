@@ -99,6 +99,12 @@ def create_checkout(data: EmailCapture, db: Session = Depends(get_db)):
         return {"already_paid": True}
 
     try:
+        import logging
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
+        logger.info(f"Creating checkout for {user.email}")
+        logger.info(f"Stripe key present: {bool(os.getenv('STRIPE_SECRET_KEY'))}")
+        logger.info(f"Price ID: {STRIPE_PRICE_ID}")
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
@@ -112,6 +118,9 @@ def create_checkout(data: EmailCapture, db: Session = Depends(get_db)):
         db.commit()
         return {"checkout_url": session.url}
     except Exception as e:
+        import traceback
+        logging.error(f"Stripe checkout error: {str(e)}")
+        logging.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
